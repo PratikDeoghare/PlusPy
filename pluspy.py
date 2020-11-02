@@ -6,9 +6,11 @@ import traceback
 
 pluspypath = ".:./modules/lib:./modules/book:./modules/other"
 
+
 def exit(status):
     sys.stdout.flush()
     os._exit(status)
+
 
 # When compiling and running into an identifier, it should be clear
 # exactly what that identifier refers to.  It could be the name of:
@@ -24,6 +26,7 @@ def exit(status):
 # that map names to expressions for these things.
 name_stack = [{}]
 
+
 def name_lookup(name):
     for d in reversed(name_stack):
         ex = d.get(name)
@@ -31,12 +34,14 @@ def name_lookup(name):
             return ex
     return False
 
+
 # Like name_lookup but prints an error
 def name_find(name):
     e = name_lookup(name)
     if not e:
         print("Identifier", name, "not found")
     return e
+
 
 # Find a file using a directory path
 def file_find(name, path):
@@ -46,6 +51,7 @@ def file_find(name, path):
         if os.path.exists(full):
             return os.path.abspath(full)
     return False
+
 
 # For debugging, we give each bounded variable a unique identifier
 bv_counter = 0
@@ -68,6 +74,7 @@ wrappers = {}
 # Verbose output
 silent = False
 verbose = False
+
 
 class FrozenDict:
     def __init__(self, d):
@@ -108,10 +115,11 @@ class FrozenDict:
                 result += format(k) + " |-> " + format(self.d[k])
         return "[ " + result + " ]"
 
+
 # A Hashable "nonce" (to implement CHOOSE x: x \notin S)
 class Nonce:
     def __init__(self, id):
-        self.id = id            # TODO: ideally a cryptographic hash
+        self.id = id  # TODO: ideally a cryptographic hash
 
     def __str__(self):
         return "Nonce(" + str(self.id) + ")"
@@ -122,6 +130,7 @@ class Nonce:
     def __eq__(self, other):
         return isinstance(other, Nonce) and other.id == self.id
 
+
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
 ####    Module specification
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
@@ -129,16 +138,16 @@ class Nonce:
 class Module:
     def __init__(self):
         self.name = None
-        self.constants = dict()     # name -> ConstantExpression
-        self.variables = dict()     # name -> VariableExpression
-        self.operators = dict()     # name -> OperatorExpression
-        self.wrappers = dict()      # name -> BuiltinExpression
-        self.globals = set()        # set of non-LOCAL names
+        self.constants = dict()  # name -> ConstantExpression
+        self.variables = dict()  # name -> VariableExpression
+        self.operators = dict()  # name -> OperatorExpression
+        self.wrappers = dict()  # name -> BuiltinExpression
+        self.globals = set()  # set of non-LOCAL names
 
     def __str__(self):
         return "Module(" + self.name + ", " + str(self.constants) \
-            + ", " + str(self.variables) + ", " \
-            + str(self.operators.keys()) + ")"
+               + ", " + str(self.variables) + ", " \
+               + str(self.operators.keys()) + ")"
 
     # handle a CONSTANT declaration
     def compileConstantDeclaration(self, ast):
@@ -222,7 +231,7 @@ class Module:
 
         mi = ModInst()
         args = [ArgumentExpression(a, c) for (a, c) in cargs]
-        name_stack.append({ a.id:a for a in args })
+        name_stack.append({a.id: a for a in args})
         # print("MD 2", id, inst)
         mi.compile(inst)
         # print("MD 3", id, args, mi)
@@ -252,7 +261,7 @@ class Module:
             (id, args, expr) = compileOperatorDefinition(a1)
             if id in self.wrappers.keys():
                 od = OperatorExpression(id, args,
-                            BuiltinExpression(id, args, self.wrappers[id]))
+                                        BuiltinExpression(id, args, self.wrappers[id]))
             else:
                 od = OperatorExpression(id, args, expr)
             self.operators[id] = od
@@ -291,7 +300,7 @@ class Module:
             (t1, a1) = a[1]
             assert t1 == "GModuleDefinition"
             self.compileModuleDefinition(a1, tloc != None)
-        elif t in { "GTheorem", "GAssumption", "GDivider" }:
+        elif t in {"GTheorem", "GAssumption", "GDivider"}:
             pass
         elif t == "GModule":
             mod = Module()
@@ -408,7 +417,7 @@ class Module:
     def load(self, f, srcid):
         all = ""
         for line in f:
-           all += line
+            all += line
         return self.load_from_string(all, srcid)
 
     def load_from_file(self, file):
@@ -417,6 +426,7 @@ class Module:
             return False
         with open(full) as f:
             return self.load(f, file)
+
 
 def load_module(name):
     mod = name_lookup(name)
@@ -433,6 +443,7 @@ def load_module(name):
             mod = modules[name]
     return mod
 
+
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
 ####    Module instance
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
@@ -441,7 +452,8 @@ def load_module(name):
 # Here each k is either a constant or variable name of the module, and e
 # some expression that should be substituted for it
 class ModInst:
-    def __init__(self, module=None, substitutions=None, operators=None, wrappers=None, globals=None):
+    def __init__(self, module=None, substitutions=None, operators=None, wrappers=None,
+                 globals=None):
         self.module = module
         self.substitutions = substitutions
         self.operators = operators
@@ -462,7 +474,7 @@ class ModInst:
 
     def substitute(self, subs):
         substitutions = {
-            k:v.substitute(subs) for (k, v) in self.substitutions.items()
+            k: v.substitute(subs) for (k, v) in self.substitutions.items()
         }
         return ModInst(module=self.module, substitutions=substitutions, operators={}, globals=set())
 
@@ -519,6 +531,7 @@ class ModInst:
             if self.module.wrappers.get(k) != None:
                 self.wrappers[k] = self.module.wrappers[k]
 
+
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
 ####    Compiler: convenient routines
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
@@ -526,24 +539,31 @@ class ModInst:
 def islower(c):
     return c in "abcdefghijklmnopqrstuvwxyz"
 
+
 def isupper(c):
     return c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
 
 def isletter(c):
     return islower(c) or isupper(c)
 
+
 def isnumeral(c):
     return c in "0123456789"
+
 
 def isalnum(c):
     return isletter(c) or isnumeral(c)
 
+
 def isnamechar(c):
     return isalnum(c) or c == "_"
 
+
 def isprint(c):
     return isinstance(c, str) and len(c) == 1 and (
-        isalnum(c) or c in " ~`!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?")
+            isalnum(c) or c in " ~`!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?")
+
 
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
 ####    Compiler: various tables copied from book
@@ -557,134 +577,134 @@ ReservedWords = [
 ]
 
 PrefixOps = {
-    "-":            (12, 12),
-    "-.":           (12, 12),
-    "~":             (4,  4),
-    "\\lnot":        (4,  4),
-    "\\neg":         (4,  4),
-    "[]":            (4, 15),
-    "<>":            (4, 15),
-    "DOMAIN":        (9,  9),
-    "ENABLED":       (4, 15),
-    "SUBSET":        (8,  8),
-    "UNCHANGED":     (4, 15),
-    "UNION":         (8,  8)
+    "-": (12, 12),
+    "-.": (12, 12),
+    "~": (4, 4),
+    "\\lnot": (4, 4),
+    "\\neg": (4, 4),
+    "[]": (4, 15),
+    "<>": (4, 15),
+    "DOMAIN": (9, 9),
+    "ENABLED": (4, 15),
+    "SUBSET": (8, 8),
+    "UNCHANGED": (4, 15),
+    "UNION": (8, 8)
 }
 
 InfixOps = {
-    "!!":            (9, 13),
-    "#":             (5,  5),
-    "##":            (9, 13),
-    "$":             (9, 13),
-    "$$":            (9, 13),
-    "%":            (10, 11),
-    "%%":           (10, 11),
-    "&":            (13, 13),
-    "&&":           (13, 13),
-    "(+)":          (10, 10),
-    "(-)":          (11, 11),
-    "(.)":          (13, 13),
-    "(/)":          (13, 13),
-    "(\\X)":        (13, 13),
-    "*":            (13, 13),
-    "**":           (13, 13),
-    "+":            (10, 10),
-    "++":           (10, 10),
-    "-":            (11, 11),
-    "-+->":          (2,  2),
-    "--":           (11, 11),
-    "-|":            (5,  5),
-    "..":            (9,  9),
-    "...":           (9,  9),
-    "/":            (13, 13),
-    "//":           (13, 13),
-    "/=":            (5,  5),
-    "/\\":           (3,  3),
-    "::=":           (5,  5),
-    ":=":            (5,  5),
-    ":>":            (7,  7),
-    "<":             (5,  5),
-    "<:":            (7,  7),
-    "<=>":           (2,  2),
-    "=":             (5,  5),
-    "<=":            (5,  5),
-    "=<":            (5,  5),
-    "=>":            (1,  1),
-    "=|":            (5,  5),
-    ">":             (5,  5),
-    ">=":            (5,  5),
-    "??":            (9, 13),
-    "@@":            (6,  6),
-    "\\":            (8,  8),
-    "\\/":           (3,  3),
-    "^":            (14, 14),
-    "^^":           (14, 14),
-    "|":            (10, 11),
-    "|-":            (5,  5),
-    "|=":            (5,  5),
-    "||":           (10, 11),
-    "~>":            (2,  2),
-    ".":            (17, 17),
-    "\\approx":      (5,  5),
-    "\\geq":         (5,  5),
-    "\\oslash":     (13, 13),
-    "\\sqsupseteq":  (5,  5),
-    "\\asymp":       (5,  5),
-    "\\gg":          (5,  5),
-    "\\otimes":     (13, 13),
-    "\\star":       (13, 13),
-    "\\bigcirc":    (13, 13),
-    "\\in":          (5,  5),
-    "\\notin":       (5,  5),
-    "\\prec":        (5,  5),
-    "\\subset":      (5,  5),
-    "\\bullet":     (13, 13),
-    "\\intersect":   (8,  8),
-    "\\preceq":      (5,  5),
-    "\\subseteq":    (5,  5),
-    "\\cap":         (8,  8),
-    "\\land":        (3,  3),
-    "\\propto":      (5,  5),
-    "\\succ":        (5,  5),
-    "\\cdot":        (5, 14),
-    "\\leq":         (5,  5),
-    "\\sim":         (5,  5),
-    "\\succeq":      (5,  5),
-    "\\circ":       (13, 13),
-    "\\ll":          (5,  5),
-    "\\simeq":       (5,  5),
-    "\\supset":      (5,  5),
-    "\\cong":        (5,  5),
-    "\\lor":         (3,  3),
-    "\\sqcap":       (9, 13),
-    "\\supseteq":    (5,  5),
-    "\\cup":         (8,  8),
-    "\\o":          (13, 13),
-    "\\sqcup":       (9, 13),
-    "\\union":       (8,  8),
-    "\\div":        (13, 13),
-    "\\odot":       (13, 13),
-    "\\sqsubset":    (5,  5),
-    "\\uplus":       (9, 13),
-    "\\doteq":       (5,  5),
-    "\\ominus":     (11, 11),
-    "\\sqsubseteq":  (5,  5),
-    "\\wr":          (9, 14),
-    "\\equiv":       (2,  2),
-    "\\oplus":      (10, 10),
-    "\\sqsupset":    (5,  5),
+    "!!": (9, 13),
+    "#": (5, 5),
+    "##": (9, 13),
+    "$": (9, 13),
+    "$$": (9, 13),
+    "%": (10, 11),
+    "%%": (10, 11),
+    "&": (13, 13),
+    "&&": (13, 13),
+    "(+)": (10, 10),
+    "(-)": (11, 11),
+    "(.)": (13, 13),
+    "(/)": (13, 13),
+    "(\\X)": (13, 13),
+    "*": (13, 13),
+    "**": (13, 13),
+    "+": (10, 10),
+    "++": (10, 10),
+    "-": (11, 11),
+    "-+->": (2, 2),
+    "--": (11, 11),
+    "-|": (5, 5),
+    "..": (9, 9),
+    "...": (9, 9),
+    "/": (13, 13),
+    "//": (13, 13),
+    "/=": (5, 5),
+    "/\\": (3, 3),
+    "::=": (5, 5),
+    ":=": (5, 5),
+    ":>": (7, 7),
+    "<": (5, 5),
+    "<:": (7, 7),
+    "<=>": (2, 2),
+    "=": (5, 5),
+    "<=": (5, 5),
+    "=<": (5, 5),
+    "=>": (1, 1),
+    "=|": (5, 5),
+    ">": (5, 5),
+    ">=": (5, 5),
+    "??": (9, 13),
+    "@@": (6, 6),
+    "\\": (8, 8),
+    "\\/": (3, 3),
+    "^": (14, 14),
+    "^^": (14, 14),
+    "|": (10, 11),
+    "|-": (5, 5),
+    "|=": (5, 5),
+    "||": (10, 11),
+    "~>": (2, 2),
+    ".": (17, 17),
+    "\\approx": (5, 5),
+    "\\geq": (5, 5),
+    "\\oslash": (13, 13),
+    "\\sqsupseteq": (5, 5),
+    "\\asymp": (5, 5),
+    "\\gg": (5, 5),
+    "\\otimes": (13, 13),
+    "\\star": (13, 13),
+    "\\bigcirc": (13, 13),
+    "\\in": (5, 5),
+    "\\notin": (5, 5),
+    "\\prec": (5, 5),
+    "\\subset": (5, 5),
+    "\\bullet": (13, 13),
+    "\\intersect": (8, 8),
+    "\\preceq": (5, 5),
+    "\\subseteq": (5, 5),
+    "\\cap": (8, 8),
+    "\\land": (3, 3),
+    "\\propto": (5, 5),
+    "\\succ": (5, 5),
+    "\\cdot": (5, 14),
+    "\\leq": (5, 5),
+    "\\sim": (5, 5),
+    "\\succeq": (5, 5),
+    "\\circ": (13, 13),
+    "\\ll": (5, 5),
+    "\\simeq": (5, 5),
+    "\\supset": (5, 5),
+    "\\cong": (5, 5),
+    "\\lor": (3, 3),
+    "\\sqcap": (9, 13),
+    "\\supseteq": (5, 5),
+    "\\cup": (8, 8),
+    "\\o": (13, 13),
+    "\\sqcup": (9, 13),
+    "\\union": (8, 8),
+    "\\div": (13, 13),
+    "\\odot": (13, 13),
+    "\\sqsubset": (5, 5),
+    "\\uplus": (9, 13),
+    "\\doteq": (5, 5),
+    "\\ominus": (11, 11),
+    "\\sqsubseteq": (5, 5),
+    "\\wr": (9, 14),
+    "\\equiv": (2, 2),
+    "\\oplus": (10, 10),
+    "\\sqsupset": (5, 5),
 
     # The following are Cartesian product ops, not infix operators
-    "\\X":          (10, 13),
-    "\\times":      (10, 13)
+    "\\X": (10, 13),
+    "\\times": (10, 13)
 }
 
 PostfixOps = {
-    "[":   (16, 16),
-    "^+":  (15, 15),
-    "^*":  (15, 15),
-    "^#":  (15, 15),
-    "'":   (15, 15)
+    "[": (16, 16),
+    "^+": (15, 15),
+    "^*": (15, 15),
+    "^#": (15, 15),
+    "'": (15, 15)
 }
 
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
@@ -704,6 +724,7 @@ tagNodes = [
     "GVariableDeclaration", "GConstantDeclaration", "Tuple",
     "parentheses", "set", "wf", "sf"
 ]
+
 
 # Pretty printer for AST.  Every node in the AST is of the form (t, a),
 # where 't' is the type and 'a' is what's in the node
@@ -751,6 +772,7 @@ def printAST(x, indent):
         print(" '" + str(a) + "'", end="")
         print(")")
 
+
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
 ####    Compiler: BNF rules
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
@@ -760,11 +782,13 @@ def lexeme(token):
     (lex, line, column, first) = token
     return lex
 
-stack = []      # Global parser state used for parsing disjuncts and conjuncts
+
+stack = []  # Global parser state used for parsing disjuncts and conjuncts
 
 # For error messages
 shortest = []
 error = []
+
 
 def parseError(a, r):
     global shortest, error
@@ -772,6 +796,7 @@ def parseError(a, r):
         error = a
         shortest = r
     return (False, a, r)
+
 
 # BNF rule
 class Rule:
@@ -800,18 +825,33 @@ class Rule:
         if isinstance(select, list) and t == "Concat":
             if len(select) == 1:
                 return (name, a[select[0]], r)
-            return (name, [ a[i] for i in select ], r)
+            return (name, [a[i] for i in select], r)
         if select != None:
             return (t, a, r)
         return (name, (t, a), r)
 
+
+class Preamble(Rule):
+    def __init__(self):
+        pass
+
+    def parse(self, s):
+        start = s[0]
+        i = 0
+        while i < len(s) and "----" != lexeme(s[i]):
+            i += 1
+        return ("Preamble", start, s[i:])
+
+
 class GModule(Rule):
     def parse(self, s):
         return self.match("GModule", s, Concat([
+            Optional(Preamble(),0),
             tok("----"), tok("MODULE"), Name(), tok("----"),
-            Optional(Concat([ tok("EXTENDS"), CommaList(Name()) ]), [1]),
+            Optional(Concat([tok("EXTENDS"), CommaList(Name())]), [1]),
             AtLeast(GUnit(), 0), tok("====")
-        ]), [ 2, 4, 5 ])
+        ]), [2 + 1, 4 + 1, 5 + 1])
+
 
 # This rule recognizes a list of other rules:  rule1 & rule2 & rule3 & ...
 class Concat(Rule):
@@ -828,6 +868,7 @@ class Concat(Rule):
             result = result + [(t, a)]
             rem = r
         return ("Concat", result, rem)
+
 
 # This rule recognizes a list of at least count rules
 class AtLeast(Rule):
@@ -850,6 +891,7 @@ class AtLeast(Rule):
             rem = r
             c -= 1
 
+
 # Recognizes an optional rule, i.e., 'rule?'
 # 'select' can be used similarly as in Rule.match()
 class Optional(Rule):
@@ -864,9 +906,10 @@ class Optional(Rule):
         elif t == "Concat" and isinstance(self.select, list):
             if len(self.select) == 1:
                 return ("Optional", a[self.select[0]], r)
-            return ("Optional", [ a[i] for i in self.select ], r)
+            return ("Optional", [a[i] for i in self.select], r)
         else:
             return ("Optional", (t, a), r)
+
 
 class tok(Rule):
     def __init__(self, what):
@@ -878,7 +921,8 @@ class tok(Rule):
         if lexeme(s[0]) == self.what:
             return ("tok", s[0], s[1:])
         return parseError([("tok: no match with '" + self.what + "'",
-                                stringToken(s[0]))], s)
+                            stringToken(s[0]))], s)
+
 
 class Tok(Rule):
     def __init__(self, what, name):
@@ -891,6 +935,7 @@ class Tok(Rule):
         if lexeme(s[0]) in self.what:
             return ("Tok", s[0], s[1:])
         return parseError(["Tok: no match with " + self.name], s)
+
 
 class Name(Rule):
     def __init__(self):
@@ -914,6 +959,7 @@ class Name(Rule):
             return ("Name", s[0], s[1:])
         return parseError([("Name with no letter", s[0])], s)
 
+
 class Identifier(Rule):
     def __init__(self):
         pass
@@ -927,6 +973,7 @@ class Identifier(Rule):
             return parseError([("Identifier: Name Reserved", a)], s)
         return ("Identifier", a, r)
 
+
 # Sometimes it is convenient to give certain rules names.
 # A Tag node simply inserts another AST node with the given name
 class Tag(Rule):
@@ -937,6 +984,7 @@ class Tag(Rule):
 
     def parse(self, s):
         return self.match(self.name, s, self.rule, self.select)
+
 
 class Number(Rule):
     def __init__(self):
@@ -951,6 +999,7 @@ class Number(Rule):
                 return parseError([("Number", s[0])], s)
         return ("Number", lex, s[1:])
 
+
 class String(Rule):
     def __init__(self):
         pass
@@ -963,17 +1012,18 @@ class String(Rule):
             return ("String", lex, s[1:])
         return parseError([("String", s[0])], s)
 
+
 class SeparatorList(Rule):
     def __init__(self, what, sep, optional):
-        self.what = what                # expression to match
-        self.sep = sep                  # separator token
-        self.optional = optional        # empty list allowed
+        self.what = what  # expression to match
+        self.sep = sep  # separator token
+        self.optional = optional  # empty list allowed
 
     def parse(self, s):
         (t, a, r) = self.what.parse(s)
         if not t:
             return ("SeparatorList", [], s) if self.optional \
-                        else (False, ["SeparatorList"] + a, r)
+                else (False, ["SeparatorList"] + a, r)
         rem = r
         result = [(t, a)]
         while True:
@@ -984,6 +1034,7 @@ class SeparatorList(Rule):
                 return ("SeparatorList", result, rem)
             result = result + [(t, a)]
             rem = r
+
 
 class CommaList(Rule):
     def __init__(self, what):
@@ -1004,12 +1055,13 @@ class CommaList(Rule):
             result = result + [(t, a)]
             rem = r
 
+
 class OneOf(Rule):
     def __init__(self, what):
         self.what = what
 
     def parse(self, s):
-        shortest = s            # look for shortest remainder
+        shortest = s  # look for shortest remainder
         result = None
         for grammar in self.what:
             (t, a, r) = grammar.parse(s)
@@ -1021,18 +1073,20 @@ class OneOf(Rule):
             return parseError([("OneOf: no match", s)], s)
         return result
 
+
 class Tuple(Rule):
     def __init__(self):
         pass
 
     def parse(self, s):
-        return self.match("Tuple", s, Concat([ tok("<<"),
-            # TODO.  Book does not allow empty tuples
-            Optional(CommaList(GExpression(0))), tok(">>") ]), [1])
+        return self.match("Tuple", s, Concat([tok("<<"),
+                                              # TODO.  Book does not allow empty tuples
+                                              Optional(CommaList(GExpression(0))), tok(">>")]), [1])
+
 
 class GUnit(Rule):
     def local(self, tag, decl):
-        return Tag(tag, Concat([ Optional(tok("LOCAL")), decl ]), [0, 1])
+        return Tag(tag, Concat([Optional(tok("LOCAL")), decl]), [0, 1])
 
     def parse(self, s):
         return self.match("GUnit", s, OneOf([
@@ -1048,23 +1102,27 @@ class GUnit(Rule):
             GDivider()
         ]), True)
 
+
 class GDivider(Rule):
     def parse(self, s):
         return self.match("GDivider", s, tok("----"))
 
+
 class GVariableDeclaration(Rule):
     def parse(self, s):
         return self.match("GVariableDeclaration", s, Concat([
-            OneOf([ tok("VARIABLE"), tok("VARIABLES") ]),
+            OneOf([tok("VARIABLE"), tok("VARIABLES")]),
             CommaList(Identifier())
         ]), [1])
+
 
 class GConstantDeclaration(Rule):
     def parse(self, s):
         return self.match("GConstantDeclaration", s, Concat([
-            OneOf([ tok("CONSTANT"), tok("CONSTANTS") ]),
+            OneOf([tok("CONSTANT"), tok("CONSTANTS")]),
             CommaList(GOpDecl())
         ]), [1])
+
 
 class GOpDecl(Rule):
     def parse(self, s):
@@ -1089,38 +1147,43 @@ class GNonFixLHS(Rule):
     def parse(self, s):
         return self.match("GNonFixLHS", s, Concat([
             Identifier(),
-            Optional(Concat([ tok("("), CommaList(GOpDecl()), tok(")") ]), [1])
+            Optional(Concat([tok("("), CommaList(GOpDecl()), tok(")")]), [1])
         ]), [0, 1])
+
 
 class GFunctionDefinition(Rule):
     def parse(self, s):
         return self.match("GFunctionDefinition", s, Concat([
             Identifier(),
             tok("["), CommaList(GQuantifierBound()), tok("]"),
-            tok("=="), GExpression(0) ]), [0, 2, 5])
+            tok("=="), GExpression(0)]), [0, 2, 5])
+
 
 class GOperatorDefinition(Rule):
     def parse(self, s):
         return self.match("GOperatorDefinition", s, Concat([
             OneOf([
                 GNonFixLHS(),
-                Tag("prefix", Concat([ Tok(PrefixOps, "prefix operator"), Identifier() ])),
-                Tag("infix", Concat([ Identifier(), Tok(InfixOps, "infix operator"), Identifier() ])),
-                Tag("postfix", Concat([ Identifier(), Tok(PostfixOps, "postfix operator") ])),
-            ]), tok("=="), GExpression(0) ]), [0, 2])
+                Tag("prefix", Concat([Tok(PrefixOps, "prefix operator"), Identifier()])),
+                Tag("infix", Concat([Identifier(), Tok(InfixOps, "infix operator"), Identifier()])),
+                Tag("postfix", Concat([Identifier(), Tok(PostfixOps, "postfix operator")])),
+            ]), tok("=="), GExpression(0)]), [0, 2])
+
 
 class GTheorem(Rule):
     def parse(self, s):
         return self.match("GTheorem", s,
-                Concat([ tok("THEOREM"), GExpression(0) ]), [1])
+                          Concat([tok("THEOREM"), GExpression(0)]), [1])
+
 
 class GAssumption(Rule):
     def parse(self, s):
         return self.match("GAssumption", s, Concat([
-            OneOf([ tok("ASSUME"), tok("ASSUMPTION"), tok("AXIOM") ]),
-            Optional(Concat([ Identifier(), tok("==") ])),
+            OneOf([tok("ASSUME"), tok("ASSUMPTION"), tok("AXIOM")]),
+            Optional(Concat([Identifier(), tok("==")])),
             GExpression(0)
         ]), [1])
+
 
 class IdentifierOrTuple(Rule):
     def parse(self, s):
@@ -1131,11 +1194,13 @@ class IdentifierOrTuple(Rule):
             ]), [1]),
         ]), [0])
 
+
 class GQuantifierBound(Rule):
     def parse(self, s):
         return self.match("GQuantifierBound", s, Concat([
-            OneOf([ CommaList(Identifier()), Tuple() ]),
-            tok("\\in"), GExpression(0) ]), [0, 2])
+            OneOf([CommaList(Identifier()), Tuple()]),
+            tok("\\in"), GExpression(0)]), [0, 2])
+
 
 class GInstance(Rule):
     def parse(self, s):
@@ -1145,12 +1210,14 @@ class GInstance(Rule):
             ]), [1])
         ]), [1, 2])
 
+
 class GSubstitution(Rule):
     def parse(self, s):
         return self.match("GSubstitution", s, Concat([
             # TODO.  Can also replace prefix, infix, or postfix ops
             Identifier(), tok("<-"), GArgument()
         ]), [0, 2])
+
 
 class GArgument(Rule):
     def parse(self, s):
@@ -1161,53 +1228,62 @@ class GArgument(Rule):
             Tag("arg-postfix", GGeneralPostfixOp())
         ]))
 
+
 class GInstancePrefix(Rule):
     def parse(self, s):
         return self.match("GInstancePrefix", s,
-            AtLeast(Concat([ Identifier(), Optional(
-                Concat([ tok("("),
+                          AtLeast(Concat([Identifier(), Optional(
+                              Concat([tok("("),
 
-                # TODO. book has GExpression here, but seems wrong
-                CommaList(GArgument()),
+                                      # TODO. book has GExpression here, but seems wrong
+                                      CommaList(GArgument()),
 
-                tok(")")
-            ]), [1]), tok("!") ]), 0))
+                                      tok(")")
+                                      ]), [1]), tok("!")]), 0))
+
 
 class GGeneralIdentifier(Rule):
     def parse(self, s):
         return self.match("GGeneralIdentifier", s,
-            Concat([ GInstancePrefix(), Identifier() ]))
+                          Concat([GInstancePrefix(), Identifier()]))
+
 
 class GGeneralPrefixOp(Rule):
     def parse(self, s):
         return self.match("GGeneralPrefixOp", s,
-            Concat([ GInstancePrefix(), Tok(PrefixOps, "prefix operator") ]))
+                          Concat([GInstancePrefix(), Tok(PrefixOps, "prefix operator")]))
+
 
 class GGeneralInfixOp(Rule):
     def parse(self, s):
         return self.match("GGeneralInfixOp", s,
-            Concat([ GInstancePrefix(), Tok(InfixOps, "infix operator") ]))
+                          Concat([GInstancePrefix(), Tok(InfixOps, "infix operator")]))
+
 
 class GGeneralPostfixOp(Rule):
     def parse(self, s):
         return self.match("GGeneralPostfixOp", s,
-            Concat([ GInstancePrefix(), Tok(PostfixOps, "postfix operator") ]))
+                          Concat([GInstancePrefix(), Tok(PostfixOps, "postfix operator")]))
+
 
 class GModuleDefinition(Rule):
     def parse(self, s):
         return self.match("GModuleDefinition", s,
-            Concat([ GNonFixLHS(), tok("=="), GInstance() ]), [0, 2])
+                          Concat([GNonFixLHS(), tok("=="), GInstance()]), [0, 2])
+
 
 # a disjunct or conjunct token is identifier by all but the line in the token
 def junct(token):
     (lex, line, column, first) = token
     return (lex, column, first)
 
+
 # we use the average of the precedence range of an operator to determine
 # its precedence.  We don't care about checking for conflicts...
 def precedence(range):
     (lo, hi) = range
     return (lo + hi) // 2
+
 
 class GExpression(Rule):
     def __init__(self, level):
@@ -1223,20 +1299,20 @@ class GExpression(Rule):
 
         # See if this is an expression starting with /\ or \/
         lex = lexeme(s[0])
-        if lex in { "/\\", "\\/" }:
+        if lex in {"/\\", "\\/"}:
             (lex, line, column, first) = s[0]
             token = (lex, column, True)
             stack.append(token)
             (t, a, r) = GExpression(0).parse(s[1:])
             if t == False:
                 stack.pop()
-                return parseError([ ("GExpression" + str(self.level), s[0]) ] + a, r)
+                return parseError([("GExpression" + str(self.level), s[0])] + a, r)
 
             while r != [] and junct(r[0]) == token:
                 (t2, a2, r2) = GExpression(0).parse(r[1:])
                 if not t2:
                     stack.pop()
-                    return parseError([ "GExpression0" ] + a2, r2)
+                    return parseError(["GExpression0"] + a2, r2)
                 (t, a, r) = ("Infix0", (s[0], (t, a), (t2, a2)), r2)
             stack.pop()
             return (t, a, r)
@@ -1251,16 +1327,16 @@ class GExpression(Rule):
             # Parse an expression of the given precedence level.
             (t, a, r) = GExpression(prec).parse(s[1:])
             if t == False:
-                return parseError([ "GExpression" + str(self.level)
-                                            + ": " + str(s[0]) ] + a, r)
+                return parseError(["GExpression" + str(self.level)
+                                   + ": " + str(s[0])] + a, r)
             (t, a, r) = ("Prefix" + str(prec), (s[0], (t, a)), r)
 
         # If not a prefix get an expression at the next precedence level
         else:
             (t, a, r) = GExpression(self.level + 1).parse(s)
             if t == False:
-                return parseError([ "GExpression" + str(self.level)
-                                            + ": " + str(s[0]) ] + a, r)
+                return parseError(["GExpression" + str(self.level)
+                                   + ": " + str(s[0])] + a, r)
 
         # Loop through the remainder.
         while r != []:
@@ -1279,14 +1355,14 @@ class GExpression(Rule):
                 # Check for an index expression
                 if lexeme(r[0]) == '[':
                     (t2, a2, r2) = Concat([tok("["),
-                            CommaList(GExpression(0)), tok("]")]).parse(r)
+                                           CommaList(GExpression(0)), tok("]")]).parse(r)
                     if not t2:
                         return (False, ["GExpresssion" + str(self.level)
-                                            + ": bad index"] + a2, r2)
+                                        + ": bad index"] + a2, r2)
                     (t, a, r) = ("Index", (r[0], (t, a), a2[1]), r2)
                 else:
                     (t, a, r) = ("Postfix" + str(self.level), ((t, a),
-                                            r[0]), r[1:])
+                                                               r[0]), r[1:])
 
             else:
                 # See if the next token is an infix operator.  If not, we're done.
@@ -1299,11 +1375,11 @@ class GExpression(Rule):
                 if lex == ".":
                     (t2, a2, r2) = Name().parse(r[1:])
                     if t2 == False:
-                        return (False, [ "GExpression" + str(self.level)
-                                            + ": no field name" ] + a2, r2)
+                        return (False, ["GExpression" + str(self.level)
+                                        + ": no field name"] + a2, r2)
                     assert t2 == "Name"
                     (t, a, r) = ("Index", (r[0], (t, a),
-                        ("CommaList", [("String", '"' + lexeme(a2) + '"')])), r2)
+                                           ("CommaList", [("String", '"' + lexeme(a2) + '"')])), r2)
 
                 else:
                     # Compute the precedence.  If too low, we're done.
@@ -1314,33 +1390,34 @@ class GExpression(Rule):
                     # Get the next expression at that precedence level.
                     (t2, a2, r2) = GExpression(prec).parse(r[1:])
                     if t2 == False:
-                        return (False, [ "GExpression" + str(self.level)
-                                            + ": " + str(r[0]) ] + a2, r2)
+                        return (False, ["GExpression" + str(self.level)
+                                        + ": " + str(r[0])] + a2, r2)
 
                     # Cartesian products are not infix operators
-                    if lex in { "\\X", "\\times" }:
+                    if lex in {"\\X", "\\times"}:
                         if t == "Cartesian":
                             (t, a, r) = ("Cartesian", a + [(t2, a2)], r2)
                         else:
                             (t, a, r) = ("Cartesian", [(t, a), (t2, a2)], r2)
                     else:
                         (t, a, r) = ("Infix" + str(self.level),
-                                            (r[0], (t, a), (t2, a2)), r2)
+                                     (r[0], (t, a), (t2, a2)), r2)
         return (t, a, r)
+
 
 # Separate AST node for the EXCEPT clause in a function update operation
 class GExcept(Rule):
     def parse(self, s):
         (t, a, r) = CommaList(Concat([
-                tok("!"),
-                AtLeast(OneOf([
-                    Tag("efield", Concat([ tok("."), Name() ]), [1]),
-                    Tag("elist", Concat([ tok("["), CommaList(GExpression(0)),
-                                                    tok("]"), ]), [1])
-                ]), 1),
-                tok("="),
-                GExpression(0)
-            ])).parse(s)
+            tok("!"),
+            AtLeast(OneOf([
+                Tag("efield", Concat([tok("."), Name()]), [1]),
+                Tag("elist", Concat([tok("["), CommaList(GExpression(0)),
+                                     tok("]"), ]), [1])
+            ]), 1),
+            tok("="),
+            GExpression(0)
+        ])).parse(s)
         if not t:
             return (False, ["GExcept"] + a, r)
         assert t == "CommaList"
@@ -1350,56 +1427,57 @@ class GExcept(Rule):
             assert t2 == "Concat"
             (t3, a3) = a2[1]
             assert t3 == "AtLeast1"
-            result = result + [ (a3, a2[3]) ]
+            result = result + [(a3, a2[3])]
         return ("GExcept", result, r)
+
 
 class GBasicExpression(Rule):
     def parse(self, s):
         return self.match("GBasicExpression", s, OneOf([
             Tag("op", Concat([
                 GGeneralIdentifier(), Optional(Concat([
-                    tok("("), CommaList(GArgument()), tok(")") ]), [1])
+                    tok("("), CommaList(GArgument()), tok(")")]), [1])
             ]), [0, 1]),
 
             Tag("parentheses", Concat([
-                            tok("("), GExpression(0), tok(")") ]), [1]),
+                tok("("), GExpression(0), tok(")")]), [1]),
 
-            Tag("exists", Concat([ tok("\\E"), CommaList(GQuantifierBound()),
-                                    tok(":"), GExpression(0) ]), [1, 3]),
+            Tag("exists", Concat([tok("\\E"), CommaList(GQuantifierBound()),
+                                  tok(":"), GExpression(0)]), [1, 3]),
 
-            Tag("forall", Concat([ tok("\\A"), CommaList(GQuantifierBound()),
-                                    tok(":"), GExpression(0) ]), [1, 3]),
+            Tag("forall", Concat([tok("\\A"), CommaList(GQuantifierBound()),
+                                  tok(":"), GExpression(0)]), [1, 3]),
 
-            Tag("temporal_exists", Concat([ tok("\\EE"), CommaList(Identifier()),
-                                    tok(":"), GExpression(0) ]), [1, 3]),
+            Tag("temporal_exists", Concat([tok("\\EE"), CommaList(Identifier()),
+                                           tok(":"), GExpression(0)]), [1, 3]),
 
-            Tag("temporal_forall", Concat([ tok("\\AA"), CommaList(Identifier()),
-                                    tok(":"), GExpression(0) ]), [1, 3]),
+            Tag("temporal_forall", Concat([tok("\\AA"), CommaList(Identifier()),
+                                           tok(":"), GExpression(0)]), [1, 3]),
 
             Tuple(),
 
-            Tag("set", Concat([ tok("{"), Optional(CommaList(GExpression(0))),
-                                    tok("}") ]), [1]),
+            Tag("set", Concat([tok("{"), Optional(CommaList(GExpression(0))),
+                               tok("}")]), [1]),
 
-            Tag("filter", Concat([ tok("{"), IdentifierOrTuple(),
-                                    tok("\\in"), GExpression(0),
-                                    tok(":"), GExpression(0),
-                                    tok("}") ]), [1, 3, 5]),
+            Tag("filter", Concat([tok("{"), IdentifierOrTuple(),
+                                  tok("\\in"), GExpression(0),
+                                  tok(":"), GExpression(0),
+                                  tok("}")]), [1, 3, 5]),
 
-            Tag("gen", Concat([ tok("{"), GExpression(0), tok(":"),
-                                    CommaList(GQuantifierBound()),
-                                    tok("}") ]), [1, 3]),
+            Tag("gen", Concat([tok("{"), GExpression(0), tok(":"),
+                               CommaList(GQuantifierBound()),
+                               tok("}")]), [1, 3]),
 
-            Tag("square", Concat([ tok("["), GExpression(0), tok("]_"),
-                                    GExpression(0) ]), [1, 3]),
+            Tag("square", Concat([tok("["), GExpression(0), tok("]_"),
+                                  GExpression(0)]), [1, 3]),
 
             Tag("lambda", Concat([
                 tok("["), CommaList(GQuantifierBound()), tok("|->"),
-                                    GExpression(0), tok("]")
+                GExpression(0), tok("]")
             ]), [1, 3]),
 
-            Tag("except", Concat([ tok("["), GExpression(0), tok("EXCEPT"),
-                                    GExcept(), tok("]") ]), [1, 3]),
+            Tag("except", Concat([tok("["), GExpression(0), tok("EXCEPT"),
+                                  GExcept(), tok("]")]), [1, 3]),
 
             Tag("funcset", Concat([
                 tok("["), GExpression(0), tok("->"), GExpression(0), tok("]")
@@ -1407,45 +1485,45 @@ class GBasicExpression(Rule):
 
             Tag("recorddef", Concat([
                 tok("["),
-                CommaList(Concat([ Name(), tok(":"), GExpression(0) ])),
+                CommaList(Concat([Name(), tok(":"), GExpression(0)])),
                 tok("]")
             ]), [1]),
 
             Tag("recordvalue", Concat([
                 tok("["),
-                CommaList(Concat([ Name(), tok("|->"), GExpression(0) ])),
+                CommaList(Concat([Name(), tok("|->"), GExpression(0)])),
                 tok("]")
             ]), [1]),
 
             Tag("choose", Concat([
                 tok("CHOOSE"), Identifier(),
                 Optional(Concat([tok("\\in"), GExpression(0)]), [1]),
-                tok(":"), GExpression(0) ]), [1, 2, 4]),
+                tok(":"), GExpression(0)]), [1, 2, 4]),
 
-            Tag("if", Concat([ tok("IF"), GExpression(0), tok("THEN"),
-                    GExpression(0), tok("ELSE"), GExpression(0) ]), [1, 3, 5]),
+            Tag("if", Concat([tok("IF"), GExpression(0), tok("THEN"),
+                              GExpression(0), tok("ELSE"), GExpression(0)]), [1, 3, 5]),
 
-            Tag("case", Concat([ tok("CASE"), SeparatorList(
-                    Concat([ GExpression(0), tok("->"), GExpression(0) ]),
-                    "[]", False), Optional(
-                    Concat([ tok("[]"), tok("OTHER"), tok("->"), GExpression(0) ]),
-                    [3]) ]), [1, 2]),
+            Tag("case", Concat([tok("CASE"), SeparatorList(
+                Concat([GExpression(0), tok("->"), GExpression(0)]),
+                "[]", False), Optional(
+                Concat([tok("[]"), tok("OTHER"), tok("->"), GExpression(0)]),
+                [3])]), [1, 2]),
 
-            Tag("let", Concat([ tok("LET"),
-                AtLeast( OneOf([
-                    GOperatorDefinition(),
-                    GFunctionDefinition(),
-                    GModuleDefinition() ]), 1),
-                tok("IN"), GExpression(0) ]), [1, 3]),
+            Tag("let", Concat([tok("LET"),
+                               AtLeast(OneOf([
+                                   GOperatorDefinition(),
+                                   GFunctionDefinition(),
+                                   GModuleDefinition()]), 1),
+                               tok("IN"), GExpression(0)]), [1, 3]),
 
             # There's an ambiguity for WF_a(b): does it mean
             # "WF_ a(b)" or "WF_a (b)"?  My parser gets confused
             # so I restricted it a bit
-            Tag("wf", Concat([ tok("WF_"), IdentifierOrTuple(),
-                    tok("("), GExpression(0), tok(")")]), [1, 3]),
+            Tag("wf", Concat([tok("WF_"), IdentifierOrTuple(),
+                              tok("("), GExpression(0), tok(")")]), [1, 3]),
 
-            Tag("sf", Concat([ tok("SF_"), IdentifierOrTuple(),
-                    tok("("), GExpression(0), tok(")")]), [1, 3]),
+            Tag("sf", Concat([tok("SF_"), IdentifierOrTuple(),
+                              tok("("), GExpression(0), tok(")")]), [1, 3]),
 
             Number(),
 
@@ -1453,6 +1531,7 @@ class GBasicExpression(Rule):
 
             Tag("at", tok("@"))
         ]))
+
 
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
 ####    Compiler: Lexer
@@ -1464,23 +1543,27 @@ tokens = [
     "\\A", "\\E", "\\AA", "\\EE", "WF_", "SF_"
 ]
 
+
 # Add tokens from the given operator table
 def addTokens(boundedvars):
     global tokens
     for (op, (low, hi)) in boundedvars.items():
         if not isalnum(op[0]) and not (len(op) > 1 \
-                                and op[0] == "\\" and isletter(op[1])):
-            tokens = tokens + [ op ]
+                                       and op[0] == "\\" and isletter(op[1])):
+            tokens = tokens + [op]
+
 
 # add tokens from the operators
 addTokens(PrefixOps)
 addTokens(InfixOps)
 addTokens(PostfixOps)
 
+
 def stringToken(x):
     (lexeme, where, column, first) = x
     (file, line) = where
     return lexeme + " (" + file + ":" + str(line) + ":" + str(column) + ")"
+
 
 # Turn input into a sequence of tokens.  Each token is a tuple
 #   (lexeme, (file, line), column, first), where first is true if
@@ -1492,7 +1575,7 @@ def lexer(s, file):
     first = True
     while s != "":
         # see if it's a blank
-        if s[0] in { " ", "\t" }:
+        if s[0] in {" ", "\t"}:
             s = s[1:]
             column += 1
             continue
@@ -1550,7 +1633,7 @@ def lexer(s, file):
             while len(s) > 0 and s[0] == '-':
                 s = s[1:]
                 column += 1
-            result += [ ("----", (file, line), c, first) ]
+            result += [("----", (file, line), c, first)]
             first = False
             continue
 
@@ -1562,7 +1645,7 @@ def lexer(s, file):
             while len(s) > 0 and s[0] == '=':
                 s = s[1:]
                 column += 1
-            result += [ ("====", (file, line), c, first) ]
+            result += [("====", (file, line), c, first)]
             first = False
             continue
 
@@ -1571,7 +1654,7 @@ def lexer(s, file):
             i = 2
             while i < len(s) and isalnum(s[i]):
                 i += 1
-            result += [ (s[:i], (file, line), column, False) ]
+            result += [(s[:i], (file, line), column, False)]
             first = False
             s = s[i:]
             column += i
@@ -1583,7 +1666,7 @@ def lexer(s, file):
             if s.startswith(t) and len(t) > len(found):
                 found = t
         if found != "":
-            result += [ (found, (file, line), column, first) ]
+            result += [(found, (file, line), column, first)]
             first = False
             s = s[len(found):]
             column += len(found)
@@ -1594,8 +1677,8 @@ def lexer(s, file):
             i = 0
             while i < len(s) and isnamechar(s[i]):
                 i += 1
-            result += [ (s[:i], (file, line), column, first) ]
-            first= False
+            result += [(s[:i], (file, line), column, first)]
+            first = False
             s = s[i:]
             column += i
             continue
@@ -1629,18 +1712,19 @@ def lexer(s, file):
             if i < len(s):
                 i += 1
             str += '"'
-            result += [ (str, (file, line), column, first) ]
+            result += [(str, (file, line), column, first)]
             first = False
             s = s[i:]
             column += i
             continue
 
         # everything else is a single character token
-        result += [ (s[0], (file, line), column, first) ]
+        result += [(s[0], (file, line), column, first)]
         first = False
         s = s[1:]
         column += 1
     return result
+
 
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
 ####    Compiler: Expressions
@@ -1672,10 +1756,11 @@ def getprefix(ast, operators):
             assert t5 == "CommaList"
             for (t, a) in a5:
                 assert t == "GArgument"
-                args += [ compileExpression(a) ]
+                args += [compileExpression(a)]
         instances += [(a3, od, args)]
         operators = od.expr.operators
     return (operators, instances)
+
 
 # handle complicated situations like A(a)!B(b)!C(c)
 # This is best done backwards:
@@ -1714,8 +1799,9 @@ def opSubst(instances):
     x = expr.substitute(subs)
     if isinstance(x, BuiltinExpression):
         return BuiltinExpression(id=x.id, args=x.args,
-                    wrapper=x.wrapper, lex=lex, primed=x.primed)
+                                 wrapper=x.wrapper, lex=lex, primed=x.primed)
     return x
+
 
 # This is an expression of the form A!B(b)!C, say
 def compileOpExpression(od):
@@ -1723,8 +1809,8 @@ def compileOpExpression(od):
 
     # print("COE", od)
     (t0, a0) = od[0]
-    assert t0 in [ "GGeneralIdentifier", "GGeneralPrefixOp",
-                        "GGeneralInfixOp", "GGeneralPostfixOp" ]
+    assert t0 in ["GGeneralIdentifier", "GGeneralPrefixOp",
+                  "GGeneralInfixOp", "GGeneralPostfixOp"]
     assert len(a0) == 2
 
     (t1, a1) = a0
@@ -1782,49 +1868,55 @@ def compileOpExpression(od):
     assert isinstance(id, OperatorExpression)
     return opSubst(instances + [(a2, id, cargs)])
 
+
 def compileQuantBoundExpression(which, qs, ex):
     quantifiers = []
     domains = []
     (t, a) = qs
-    assert t == "CommaList"     # one or more quantifiers
+    assert t == "CommaList"  # one or more quantifiers
     assert len(a) > 0
-    for q in a:                 # loop through these
+    for q in a:  # loop through these
         (t2, a2) = q
         assert t2 == "GQuantifierBound"
         domain = compileExpression(a2[1])
         (t3, a3) = a2[0]
         assert t3 in {"CommaList", "Tuple"}
-        assert t3 == "CommaList"            # ignore tuples for now
+        assert t3 == "CommaList"  # ignore tuples for now
         for (t4, a4) in a3:
             assert t4 == "Identifier"
             quantifiers += [BoundvarExpression(lexeme(a4))]
             domains += [domain]
 
-    name_stack.append({ bv.id:bv for bv in quantifiers })
+    name_stack.append({bv.id: bv for bv in quantifiers})
     expr = compileExpression(ex)
     name_stack.pop()
 
     if which == "exists":
-        return ExistsExpression(quantifiers=quantifiers, domains=domains, expr=expr, primed=expr.primed)
+        return ExistsExpression(quantifiers=quantifiers, domains=domains, expr=expr,
+                                primed=expr.primed)
     if which == "forall":
-        return ForallExpression(quantifiers=quantifiers, domains=domains, expr=expr, primed=expr.primed)
+        return ForallExpression(quantifiers=quantifiers, domains=domains, expr=expr,
+                                primed=expr.primed)
     if which == "lambda":
-        return LambdaExpression(quantifiers=quantifiers, domains=domains, expr=expr, primed=expr.primed)
+        return LambdaExpression(quantifiers=quantifiers, domains=domains, expr=expr,
+                                primed=expr.primed)
     if which == "gen":
-        return GenExpression(expr=expr, quantifiers=quantifiers, domains=domains, primed=expr.primed)
+        return GenExpression(expr=expr, quantifiers=quantifiers, domains=domains,
+                             primed=expr.primed)
     assert False
+
 
 def compileQuantUnboundExpression(which, func):
     quantifiers = []
     (t, a) = func[0]
-    assert t == "CommaList"     # one or more quantifiers
+    assert t == "CommaList"  # one or more quantifiers
     assert len(a) > 0
-    for q in a:                 # loop through these
+    for q in a:  # loop through these
         (t2, a2) = q
         assert t2 == "Identifier"
         quantifiers += [VariableExpression(lexeme(a2))]
 
-    name_stack.append({ bv.id:bv for bv in quantifiers })
+    name_stack.append({bv.id: bv for bv in quantifiers})
     expr = compileExpression(func[1])
     name_stack.pop()
 
@@ -1834,6 +1926,7 @@ def compileQuantUnboundExpression(which, func):
         return Temporal_forallExpression(quantifiers=quantifiers, expr=expr, primed=expr.primed)
     assert False
 
+
 def compileExpression(ast):
     (t, a) = ast
     if t == False:
@@ -1841,15 +1934,15 @@ def compileExpression(ast):
         assert False
     elif t == "op":
         return compileOpExpression(a)
-    elif t in { "arg-prefix", "arg-infix", "arg-postfix" }:
+    elif t in {"arg-prefix", "arg-infix", "arg-postfix"}:
         return compileOpExpression([a, ("Optional", None)])
-    elif t in { "exists", "forall", "lambda" }:
+    elif t in {"exists", "forall", "lambda"}:
         return compileQuantBoundExpression(t, a[0], a[1])
     elif t == "gen":
         return compileQuantBoundExpression(t, a[1], a[0])
-    elif t in { "temporal_exists", "temporal_forall" }:
+    elif t in {"temporal_exists", "temporal_forall"}:
         return compileQuantUnboundExpression(t, a)
-    elif t in { "GBasicExpression", "parentheses" }:
+    elif t in {"GBasicExpression", "parentheses"}:
         return compileExpression(a)
     elif t == "Tuple":
         return TupleExpression().fromAST(a)
@@ -1893,13 +1986,14 @@ def compileExpression(ast):
         return SquareExpression().fromAST(a)
     elif t == "recorddef":
         return RecorddefExpression().fromAST(a)
-    elif t in { "wf", "sf" }:
+    elif t in {"wf", "sf"}:
         return FairnessExpression(t, a)
     elif t == "at":
         return name_find("@")
     else:
         print("Can't compile ", ast)
         return None
+
 
 # handle an "Operator(args) == Expression" definition
 def compileOperatorDefinition(od):
@@ -1971,11 +2065,12 @@ def compileOperatorDefinition(od):
 
     # print("OD", modstk[-1].name, id)
     args = [ArgumentExpression(a, n) for (a, n) in cargs]
-    name_stack.append({ a.id:a for a in args })
+    name_stack.append({a.id: a for a in args})
     ce = compileExpression(od[1])
     name_stack.pop()
 
     return (id, args, ce)
+
 
 # handle a "Function[args] == Expression" definition.  Define as
 #   f[x \in D] == e  ==>   f == CHOOSE f: f = [x \ D: e]
@@ -1984,7 +2079,7 @@ def compileFunctionDefinition(od):
     assert t0 == "Identifier"
     id = lexeme(a0)
     bve = BoundvarExpression(id)
-    name_stack.append({ id: bve })
+    name_stack.append({id: bve})
     f = compileQuantBoundExpression("lambda", od[1], od[2])
     name_stack.pop()
     (op, file, column, first) = a0
@@ -1992,15 +2087,17 @@ def compileFunctionDefinition(od):
     c = ChooseExpression(id=bve, expr=infix)
     return (id, [], c)
 
+
 # Convert a value to something a little more normal and better for printing
 def convert(v):
     if isinstance(v, tuple):
-        return tuple([ convert(x) for x in v ])
+        return tuple([convert(x) for x in v])
     if isinstance(v, frozenset):
-        return [ convert(y) for y in set(v) ]
+        return [convert(y) for y in set(v)]
     if isinstance(v, FrozenDict):
-        return { convert(x):convert(y) for (x, y) in v.d.items() }
+        return {convert(x): convert(y) for (x, y) in v.d.items()}
     return v
+
 
 def is_tla_id(s):
     if not isinstance(s, str):
@@ -2008,6 +2105,7 @@ def is_tla_id(s):
     if any(not isnamechar(c) for c in s):
         return False
     return any(isletter(c) for c in s)
+
 
 # Defines a sorting order on all values
 def key(v):
@@ -2029,6 +2127,7 @@ def key(v):
         return (6, v.id)
     print(v)
     assert False
+
 
 # Convert a value to a string in TLA+ format
 def format(v):
@@ -2059,9 +2158,10 @@ def format(v):
         return v.format()
     return str(v)
 
+
 class Expression:
     def __init__(self):
-        self.primed = None        # set if this expression is primed
+        self.primed = None  # set if this expression is primed
 
     def __repr__(self):
         return self.__str__()
@@ -2081,6 +2181,7 @@ class Expression:
         assert v != None
         return funceval(v, fargs)
 
+
 # A built-in expression
 class BuiltinExpression(Expression):
     def __init__(self, id=None, args=None, wrapper=None, lex=None, primed=False):
@@ -2092,16 +2193,16 @@ class BuiltinExpression(Expression):
 
     def __str__(self):
         return "Builtin(" + self.id + ", " + str(self.args) + ", " + \
-                    str(self.wrapper) + ", " + str(self.lex) + ")"
+               str(self.wrapper) + ", " + str(self.lex) + ")"
 
     def substitute(self, subs):
         args = [x.substitute(subs) for x in self.args]
         return BuiltinExpression(id=self.id, args=args,
-                    wrapper=self.wrapper, lex=self.lex, primed=self.primed)
+                                 wrapper=self.wrapper, lex=self.lex, primed=self.primed)
 
     def eval(self, containers, boundedvars):
         # print("BI eval", self)
-        args = [ arg.eval(containers, boundedvars) for arg in self.args ]
+        args = [arg.eval(containers, boundedvars) for arg in self.args]
         try:
             return self.wrapper.eval(self.id, args)
         except Exception as e:
@@ -2109,6 +2210,7 @@ class BuiltinExpression(Expression):
             print(e)
             print(traceback.format_exc())
             exit(1);
+
 
 # The simplest of expressions is just a value
 class ValueExpression(Expression):
@@ -2124,6 +2226,7 @@ class ValueExpression(Expression):
 
     def eval(self, containers, boundedvars):
         return self.value
+
 
 # Another simple one is a variable expression
 class VariableExpression(Expression):
@@ -2148,6 +2251,7 @@ class VariableExpression(Expression):
         print("Error: variable", self.id, "not realized", containers, boundedvars)
         exit(1)
 
+
 # Another simple one is a constant expression
 class ConstantExpression(Expression):
     def __init__(self, id=None, count=0, primed=False):
@@ -2167,6 +2271,7 @@ class ConstantExpression(Expression):
     def eval(self, containers, boundedvars):
         print("Error: constant", self.id, "does not have a value")
         exit(1)
+
 
 # Another simple one is a bounded variable (in \E, lambdas, etc.)
 # The values are in the "boundedvars" dictionary
@@ -2194,6 +2299,7 @@ class BoundvarExpression(Expression):
         expr = boundedvars[self]
         return expr.apply(containers, boundedvars, fargs)
 
+
 # An "argument" is the usage of an argument to an operator definition
 # inside its body.  It itself may have arguments.  Needs to be substituted
 # before evaluation
@@ -2215,6 +2321,7 @@ class ArgumentExpression(Expression):
     def eval(self, containers, boundedvars):
         print("Error: argument", self.id, "not realized", self.nargs, containers, boundedvars)
         assert False
+
 
 # This is like an ArgumentExpression with arguments of its own (i.e., an
 # argument of a 2nd order operator, but with its arguments instantiated
@@ -2243,15 +2350,16 @@ class ParameterExpression(Expression):
                 assert len(self.args) == op.nargs
                 # print("ZZZ", self, op, subs)
                 return ParameterExpression(argument=op, args=self.args,
-                                            primed=self.primed)
+                                           primed=self.primed)
         else:
             args = [a.substitute(subs) for a in self.args]
             return ParameterExpression(argument=self.argument, args=args,
-                                            primed=self.primed)
+                                       primed=self.primed)
 
     def eval(self, containers, boundedvars):
         print("Error: parameter", self.argument, "not realized")
         assert False
+
 
 class OperatorExpression(Expression):
     def __init__(self, id=None, args=None, expr=None, primed=False):
@@ -2262,15 +2370,16 @@ class OperatorExpression(Expression):
 
     def __str__(self):
         return "Operator(" + self.id + ", " + str(self.args) + ")"
-            # + ", " + self.expr.__str__() \
+        # + ", " + self.expr.__str__() \
 
     def substitute(self, subs):
         return OperatorExpression(id=self.id, args=self.args,
-                    expr=self.expr.substitute(subs), primed=self.primed)
+                                  expr=self.expr.substitute(subs), primed=self.primed)
 
     def eval(self, containers, boundedvars):
         # print("operator", self, "invoked without arguments")
         return self
+
 
 # Another simple one is a container expression, which holds a value for a variable
 # for both the previous state and the next state
@@ -2283,7 +2392,7 @@ class ContainerExpression(Expression):
 
     def __str__(self):
         return "Container(" + self.var.id + ", " + str(convert(self.prev)) \
-                            + ", " + str(convert(self.next)) + ")"
+               + ", " + str(convert(self.next)) + ")"
 
     def substitute(self, subs):
         return self
@@ -2293,6 +2402,7 @@ class ContainerExpression(Expression):
             print("null container", self)
         assert self.prev != None
         return self.prev
+
 
 class SquareExpression(Expression):
     def __init__(self, lhs=None, rhs=None, primed=False):
@@ -2319,6 +2429,7 @@ class SquareExpression(Expression):
     def eval(self, containers, boundedvars):
         return self.lhs.eval(containers, boundedvars)
 
+
 class FairnessExpression(Expression):
     def __init__(self, t, a):
         self.type = t
@@ -2333,10 +2444,11 @@ class FairnessExpression(Expression):
 
     def __str__(self):
         return "FAIRNESS(" + self.type + ", " + self.lhs.__str__() \
-                    + ", " +  self.rhs.__str__() + ")"
+               + ", " + self.rhs.__str__() + ")"
 
     def substitute(self, subs):
         return self
+
 
 class LambdaExpression(Expression):
     def __init__(self, quantifiers=None, domains=None, expr=None, primed=False):
@@ -2349,10 +2461,10 @@ class LambdaExpression(Expression):
         return "Lambda(" + str(self.quantifiers) + ", " + self.expr.__str__() + ")"
 
     def substitute(self, subs):
-        domains = [ expr.substitute(subs) for expr in self.domains ]
+        domains = [expr.substitute(subs) for expr in self.domains]
         expr = self.expr.substitute(subs)
         return LambdaExpression(quantifiers=self.quantifiers, domains=domains,
-                            expr=expr, primed=self.primed)
+                                expr=expr, primed=self.primed)
 
     def enumerate(self, containers, domains, lst, result, boundedvars):
         if domains == []:
@@ -2369,13 +2481,13 @@ class LambdaExpression(Expression):
             for val in domain:
                 boundedvars[var] = ValueExpression(val)
                 self.enumerate(containers, domains[1:], lst + [val],
-                                        result, boundedvars)
+                               result, boundedvars)
 
     def eval(self, containers, boundedvars):
         domains = []
         for i in range(len(self.quantifiers)):
-            domains += [ (self.quantifiers[i],
-                            self.domains[i].eval(containers, boundedvars)) ]
+            domains += [(self.quantifiers[i],
+                         self.domains[i].eval(containers, boundedvars))]
         result = {}
         self.enumerate(containers, domains, [], result, boundedvars.copy())
         return simplify(FrozenDict(result))
@@ -2388,6 +2500,7 @@ class LambdaExpression(Expression):
             bv[var] = ValueExpression(fargs[i])
         return self.expr.eval(containers, bv)
 
+
 class ExistsExpression(Expression):
     def __init__(self, quantifiers=None, domains=None, expr=None, primed=False):
         self.quantifiers = quantifiers
@@ -2399,10 +2512,10 @@ class ExistsExpression(Expression):
         return "Exists(" + str(self.quantifiers) + ", " + self.expr.__str__() + ")"
 
     def substitute(self, subs):
-        domains = [ expr.substitute(subs) for expr in self.domains ]
+        domains = [expr.substitute(subs) for expr in self.domains]
         expr = self.expr.substitute(subs)
         return ExistsExpression(quantifiers=self.quantifiers, domains=domains,
-                            expr=expr, primed=self.primed)
+                                expr=expr, primed=self.primed)
 
     def enumerate(self, containers, domains, boundedvars):
         global IO_outputs, waitset, signalset
@@ -2437,9 +2550,10 @@ class ExistsExpression(Expression):
     def eval(self, containers, boundedvars):
         domains = []
         for i in range(len(self.quantifiers)):
-            domains += [ (self.quantifiers[i],
-                            self.domains[i].eval(containers, boundedvars)) ]
+            domains += [(self.quantifiers[i],
+                         self.domains[i].eval(containers, boundedvars))]
         return self.enumerate(containers, domains, boundedvars.copy())
+
 
 class ForallExpression(Expression):
     def __init__(self, quantifiers=None, domains=None, expr=None, primed=False):
@@ -2452,10 +2566,10 @@ class ForallExpression(Expression):
         return "Forall(" + str(self.quantifiers) + ", " + self.expr.__str__() + ")"
 
     def substitute(self, subs):
-        domains = [ expr.substitute(subs) for expr in self.domains ]
+        domains = [expr.substitute(subs) for expr in self.domains]
         expr = self.expr.substitute(subs)
         return ForallExpression(quantifiers=self.quantifiers, domains=domains,
-                            expr=expr, primed=self.primed)
+                                expr=expr, primed=self.primed)
 
     def enumerate(self, containers, domains, boundedvars):
         if domains == []:
@@ -2472,9 +2586,10 @@ class ForallExpression(Expression):
     def eval(self, containers, boundedvars):
         domains = []
         for i in range(len(self.quantifiers)):
-            domains += [ (self.quantifiers[i],
-                            self.domains[i].eval(containers, boundedvars)) ]
+            domains += [(self.quantifiers[i],
+                         self.domains[i].eval(containers, boundedvars))]
         return self.enumerate(containers, domains, boundedvars.copy())
+
 
 class GenExpression(Expression):
     def __init__(self, expr=None, quantifiers=None, domains=None, primed=False):
@@ -2485,13 +2600,13 @@ class GenExpression(Expression):
 
     def __str__(self):
         return "Gen(" + self.expr.__str__() \
-                        + ", " + str(self.quantifiers) + ")"
+               + ", " + str(self.quantifiers) + ")"
 
     def substitute(self, subs):
-        domains = [ expr.substitute(subs) for expr in self.domains ]
+        domains = [expr.substitute(subs) for expr in self.domains]
         expr = self.expr.substitute(subs)
         return GenExpression(expr=expr, quantifiers=self.quantifiers,
-                                domains=domains, primed=self.primed)
+                             domains=domains, primed=self.primed)
 
     def enumerate(self, containers, domains, boundedvars, result):
         if domains == []:
@@ -2506,11 +2621,12 @@ class GenExpression(Expression):
     def eval(self, containers, boundedvars):
         domains = []
         for i in range(len(self.quantifiers)):
-            domains += [ (self.quantifiers[i],
-                            self.domains[i].eval(containers, boundedvars)) ]
+            domains += [(self.quantifiers[i],
+                         self.domains[i].eval(containers, boundedvars))]
         result = []
         self.enumerate(containers, domains, boundedvars.copy(), result)
         return frozenset(result)
+
 
 class Temporal_existsExpression(Expression):
     def __init__(self, quantifiers=None, expr=None, containers=None, primed=False):
@@ -2529,16 +2645,17 @@ class Temporal_existsExpression(Expression):
             for id in self.quantifiers:
                 containers[id] = ContainerExpression(var=id)
             return Temporal_existsExpression(quantifiers=self.quantifiers,
-                    expr=self.expr.substitute(containers),
-                    containers=containers, primed=self.primed)
+                                             expr=self.expr.substitute(containers),
+                                             containers=containers, primed=self.primed)
         else:
             return Temporal_existsExpression(quantifiers=self.quantifiers,
-                    expr=self.expr.substitute(subs),
-                    containers=self.containers,
-                    primed=self.primed)
+                                             expr=self.expr.substitute(subs),
+                                             containers=self.containers,
+                                             primed=self.primed)
 
     def eval(self, containers, boundedvars):
         return self.expr.eval(self.containers, boundedvars)
+
 
 class RecorddefExpression(Expression):
     def __init__(self, kvs=None, primed=False):
@@ -2569,7 +2686,7 @@ class RecorddefExpression(Expression):
         return "Recorddef(" + result + ")"
 
     def substitute(self, subs):
-        kvs = { k:v.substitute(subs) for (k, v) in self.kvs.items() }
+        kvs = {k: v.substitute(subs) for (k, v) in self.kvs.items()}
         return RecorddefExpression(kvs=kvs, primed=self.primed)
 
     def expand(self, keys, record, result, containers, boundedvars):
@@ -2590,6 +2707,7 @@ class RecorddefExpression(Expression):
         result = []
         self.expand(keys, {}, result, containers, boundedvars)
         return frozenset(result)
+
 
 class RecordvalueExpression(Expression):
     def __init__(self, kvs=None, primed=False):
@@ -2620,7 +2738,7 @@ class RecordvalueExpression(Expression):
         return "Recordvalue(" + result + ")"
 
     def substitute(self, subs):
-        kvs = { k:v.substitute(subs) for (k, v) in self.kvs.items() }
+        kvs = {k: v.substitute(subs) for (k, v) in self.kvs.items()}
         return RecordvalueExpression(kvs=kvs, primed=self.primed)
 
     def eval(self, containers, boundedvars):
@@ -2629,6 +2747,7 @@ class RecordvalueExpression(Expression):
         for k in sorted(keys, key=lambda x: key(x)):
             kvs[k] = self.kvs[k].eval(containers, boundedvars)
         return simplify(FrozenDict(kvs))
+
 
 class FuncsetExpression(Expression):
     def __init__(self, lhs=None, rhs=None, primed=False):
@@ -2667,6 +2786,7 @@ class FuncsetExpression(Expression):
         self.enumerate(list(lhs), list(rhs), {}, result)
         return frozenset(result)
 
+
 class ExceptExpression(Expression):
     def __init__(self, lhs=None, rhs=None, at=None, primed=False):
         self.lhs = lhs
@@ -2702,7 +2822,7 @@ class ExceptExpression(Expression):
                 else:
                     assert t3 == "Name"
                     args += [[StringExpression(lexeme(a3))]]
-            name_stack.append({ "@": self.at })
+            name_stack.append({"@": self.at})
             cexpr = compileExpression(expr)
             name_stack.pop()
             if cexpr.primed:
@@ -2736,24 +2856,24 @@ class ExceptExpression(Expression):
             for a in args:
                 pos = []
                 for x in a:
-                    pos += [ x.substitute(subs) ]
-                ind += [ pos ]
+                    pos += [x.substitute(subs)]
+                ind += [pos]
             rhs += [(ind, expr.substitute(subs))]
         return ExceptExpression(lhs=lhs, rhs=rhs, at=self.at, primed=self.primed)
 
     def eval(self, containers, boundedvars):
         lhs = self.lhs.eval(containers, boundedvars)
         if isinstance(lhs, str) or isinstance(lhs, tuple):
-            kvs = { (i+1):lhs[i] for i in range(len(lhs)) }
+            kvs = {(i + 1): lhs[i] for i in range(len(lhs))}
         else:
             assert isinstance(lhs, FrozenDict)
             kvs = lhs.d.copy()
 
         # Evaluate the exceptions
         for (iargs, iexpr) in self.rhs:
-            assert len(iargs) == 1       # TODO doesn't handle ![][]...
+            assert len(iargs) == 1  # TODO doesn't handle ![][]...
             a = iargs[0]
-            vals = [ arg.eval(containers, boundedvars) for arg in a ]
+            vals = [arg.eval(containers, boundedvars) for arg in a]
             newBVs = boundedvars.copy()
             old = funceval(lhs, vals)
             newBVs[self.at] = ValueExpression(old)
@@ -2763,6 +2883,7 @@ class ExceptExpression(Expression):
             else:
                 kvs[tuple(vals)] = new
         return simplify(FrozenDict(kvs))
+
 
 class PrimeExpression(Expression):
     def __init__(self, expr=None, primed=True):
@@ -2786,6 +2907,7 @@ class PrimeExpression(Expression):
         assert self.expr.next != None
         return self.expr.next
 
+
 class OutfixExpression(Expression):
     def __init__(self, op=None, expr=None, primed=False):
         self.op = op
@@ -2803,7 +2925,7 @@ class OutfixExpression(Expression):
             id = mod.operators[self.op]
             assert isinstance(id, OperatorExpression)
             assert len(id.args) == 1
-            args = [ compileExpression(expr) ]
+            args = [compileExpression(expr)]
             return opSubst([(op, id, args)])
 
         self.expr = compileExpression(expr)
@@ -2824,13 +2946,13 @@ class OutfixExpression(Expression):
         global initializing
         if self.op == "[]" and initializing:
             initializing = False
-            expr=self.expr.substitute(subs)
+            expr = self.expr.substitute(subs)
             initializing = True
             return OutfixExpression(op=self.op,
-                    expr=expr, primed=self.primed)
+                                    expr=expr, primed=self.primed)
 
         return OutfixExpression(op=self.op,
-                    expr=self.expr.substitute(subs), primed=self.primed)
+                                expr=self.expr.substitute(subs), primed=self.primed)
 
     def always(self, containers, boundedvars):
         assert isinstance(self.expr, SquareExpression)
@@ -2849,7 +2971,7 @@ class OutfixExpression(Expression):
             global maxcount, waitset, cond
 
             if not silent:
-                s = { k.id:c.next for (k, c) in containers.items() }
+                s = {k.id: c.next for (k, c) in containers.items()}
                 print("Next state:", i, format(FrozenDict(s)))
             if maxcount != None and i >= maxcount:
                 exit(0)
@@ -2902,6 +3024,7 @@ class OutfixExpression(Expression):
         print("Outfix operator", self.op, "not defined")
         assert False
 
+
 class ChooseExpression(Expression):
     def __init__(self, id=None, domain=None, expr=None, primed=False):
         self.id = id
@@ -2918,7 +3041,7 @@ class ChooseExpression(Expression):
         assert t1 == "Optional"
         self.domain = None if a1 == None else compileExpression(a1)
 
-        name_stack.append({ self.id.id:self.id })
+        name_stack.append({self.id.id: self.id})
         self.expr = compileExpression(expr[2])
         name_stack.pop()
         self.primed = False
@@ -2926,18 +3049,19 @@ class ChooseExpression(Expression):
 
     def __str__(self):
         return "Choose(" + str(self.id) + ", " + self.domain.__str__() \
-                                + ", " + self.expr.__str__() + ")"
+               + ", " + self.expr.__str__() + ")"
 
     def substitute(self, subs):
         return ChooseExpression(id=self.id,
-            domain=None if self.domain == None else self.domain.substitute(subs),
-            expr=self.expr.substitute(subs), primed=self.primed)
+                                domain=None if self.domain == None else self.domain.substitute(
+                                    subs),
+                                expr=self.expr.substitute(subs), primed=self.primed)
 
     def eval(self, containers, boundedvars):
         newBV = boundedvars.copy()
         if self.domain == None:
             if isinstance(self.expr, InfixExpression) \
-                    and lexeme(self.expr.op) in { "=", "\\in", "\\notin" } \
+                    and lexeme(self.expr.op) in {"=", "\\in", "\\notin"} \
                     and isinstance(self.expr.lhs, BoundvarExpression) \
                     and self.expr.lhs == self.id:
                 if lexeme(self.expr.op) == "=":
@@ -2959,7 +3083,7 @@ class ChooseExpression(Expression):
                 return Nonce(self.expr.value.__hash__())
         else:
             domain = sorted(self.domain.eval(containers, boundedvars),
-                                        key=lambda x: key(x))
+                            key=lambda x: key(x))
             for x in domain:
                 newBV[self.id] = ValueExpression(x)
                 r = self.expr.eval(containers, newBV)
@@ -2982,6 +3106,7 @@ class ChooseExpression(Expression):
             v = self.eval(containers, boundedvars)
             return funceval(v, fargs)
 
+
 # TODO.  Can potentiallly get rid of this in favor of CaseExpression
 class IfExpression(Expression):
     def __init__(self, cond=None, ifexpr=None, elseexpr=None, primed=False):
@@ -2996,12 +3121,12 @@ class IfExpression(Expression):
         self.ifexpr = compileExpression(expr[1])
         self.elseexpr = compileExpression(expr[2])
         self.primed = self.cond.primed or self.ifexpr.primed \
-                                        or self.elseexpr.primed
+                      or self.elseexpr.primed
         return self
 
     def __str__(self):
         return "If(" + self.cond.__str__() + ", " + self.ifexpr.__str__() \
-                                + ", " + self.elseexpr.__str__() + ")"
+               + ", " + self.elseexpr.__str__() + ")"
 
     def substitute(self, subs):
         return IfExpression(
@@ -3017,6 +3142,7 @@ class IfExpression(Expression):
             return self.ifexpr.eval(containers, boundedvars)
         else:
             return self.elseexpr.eval(containers, boundedvars)
+
 
 class CaseExpression(Expression):
     def __init__(self, cases=None, other=None, primed=False):
@@ -3036,7 +3162,7 @@ class CaseExpression(Expression):
             assert t2 == "Concat"
             cond = compileExpression(a2[0])
             val = compileExpression(a2[2])
-            self.cases += [ (cond, val) ]
+            self.cases += [(cond, val)]
             if cond.primed or val.primed:
                 self.primed = True
 
@@ -3059,8 +3185,8 @@ class CaseExpression(Expression):
         return "Case(" + result + ")"
 
     def substitute(self, subs):
-        cases = [ (cond.substitute(subs), expr.substitute(subs))
-                                        for (cond, expr) in self.cases ]
+        cases = [(cond.substitute(subs), expr.substitute(subs))
+                 for (cond, expr) in self.cases]
         other = None if self.other == None else self.other.substitute(subs)
         return CaseExpression(cases=cases, other=other, primed=self.primed)
 
@@ -3072,6 +3198,7 @@ class CaseExpression(Expression):
                 return e.eval(containers, boundedvars)
         assert self.other != None
         return self.other.eval(containers, boundedvars)
+
 
 class LetExpression(Expression):
     def __init__(self, mod=None, expr=None, primed=False):
@@ -3110,7 +3237,7 @@ class LetExpression(Expression):
         name_stack.pop()
         modstk.pop()
 
-        return self.expr        # make "LET" disappear
+        return self.expr  # make "LET" disappear
 
     def __str__(self):
         if False:
@@ -3127,6 +3254,7 @@ class LetExpression(Expression):
     def eval(self, containers, boundedvars):
         assert False
 
+
 # Cartesian product
 class CartesianExpression(Expression):
     def __init__(self, exprs=None, primed=False):
@@ -3134,7 +3262,7 @@ class CartesianExpression(Expression):
         self.primed = primed
 
     def fromAST(self, cart):
-        self.exprs = [ compileExpression(x) for x in cart ]
+        self.exprs = [compileExpression(x) for x in cart]
         self.primed = any(x.primed for x in self.exprs)
         return self
 
@@ -3147,7 +3275,7 @@ class CartesianExpression(Expression):
         return "Cartesian(" + result + ")"
 
     def substitute(self, subs):
-        exprs = [ x.substitute(subs) for x in self.exprs ]
+        exprs = [x.substitute(subs) for x in self.exprs]
         return CartesianExpression(exprs=exprs, primed=self.primed)
 
     def enumerate(self, exprs, tup, result):
@@ -3158,10 +3286,11 @@ class CartesianExpression(Expression):
                 self.enumerate(exprs[1:], tup + [x], result)
 
     def eval(self, containers, boundedvars):
-        exprs = [ x.eval(containers, boundedvars) for x in self.exprs ]
+        exprs = [x.eval(containers, boundedvars) for x in self.exprs]
         result = []
         self.enumerate(exprs, [], result)
         return frozenset(result)
+
 
 class InfixExpression(Expression):
     def __init__(self, op=None, lhs=None, rhs=None, primed=False):
@@ -3177,12 +3306,12 @@ class InfixExpression(Expression):
         lt = compileExpression(lhs)
         rt = compileExpression(rhs)
         mod = modstk[-1]
-        
+
         if lex in mod.operators:
             id = mod.operators[lex]
             assert isinstance(id, OperatorExpression)
             assert len(id.args) == 2
-            return opSubst([(op, id, [ lt, rt ])])
+            return opSubst([(op, id, [lt, rt])])
 
         self.op = op
         self.lhs = lt
@@ -3192,12 +3321,12 @@ class InfixExpression(Expression):
 
     def __str__(self):
         return "Infix(\"" + str(self.op) + "\", " + self.lhs.__str__() \
-                                    + ", " + self.rhs.__str__() + ")"
+               + ", " + self.rhs.__str__() + ")"
 
     def substitute(self, subs):
         return InfixExpression(op=self.op,
-            lhs=self.lhs.substitute(subs), rhs=self.rhs.substitute(subs),
-            primed=self.primed)
+                               lhs=self.lhs.substitute(subs), rhs=self.rhs.substitute(subs),
+                               primed=self.primed)
 
     def eval(self, containers, boundedvars):
         global IO_outputs, waitset, signalset  # these behave as hidden variables
@@ -3282,6 +3411,7 @@ class InfixExpression(Expression):
         print("Infix operator", self.op, "not defined")
         assert False
 
+
 # Apply the given arguments in vals to func
 def funceval(func, vals):
     assert func != None
@@ -3298,7 +3428,7 @@ def funceval(func, vals):
         assert len(vals) == 1
         assert vals[0] >= 1
         assert vals[0] <= len(func)
-        kvs = { (i+1):func[i] for i in range(len(func)) }
+        kvs = {(i + 1): func[i] for i in range(len(func))}
     else:
         assert isinstance(func, FrozenDict)
         kvs = func.d
@@ -3314,6 +3444,7 @@ def funceval(func, vals):
 
     print("FUNCEVAL", func, vals, kvs, k)
     assert False
+
 
 # v is either a string, a tuple of values, or a FrozenDict.
 # Return a uniform representation such that if two values should
@@ -3340,6 +3471,7 @@ def simplify(v):
         return "".join(v)
 
     return v
+
 
 class IndexExpression(Expression):
     def __init__(self, token=None, func=None, args=None, primed=None):
@@ -3376,16 +3508,17 @@ class IndexExpression(Expression):
     def substitute(self, subs):
         assert self.args != []
         func = self.func.substitute(subs)
-        args = [ arg.substitute(subs) for arg in self.args ]
+        args = [arg.substitute(subs) for arg in self.args]
         assert args != []
         return IndexExpression(func=func, args=args, primed=self.primed)
 
     def eval(self, containers, boundedvars):
         assert self.args != []
-        args = [ arg.eval(containers, boundedvars) for arg in self.args ]
+        args = [arg.eval(containers, boundedvars) for arg in self.args]
         r = self.func.apply(containers, boundedvars, args)
         assert r != None
         return r
+
 
 class TupleExpression(Expression):
     def __init__(self, exprs=None, primed=False):
@@ -3421,17 +3554,18 @@ class TupleExpression(Expression):
 
     def substitute(self, subs):
         return TupleExpression(
-            exprs=[ e.substitute(subs) for e in self.exprs ],
+            exprs=[e.substitute(subs) for e in self.exprs],
             primed=self.primed
         )
 
     def eval(self, containers, boundedvars):
-        return simplify(tuple([ e.eval(containers, boundedvars) for e in self.exprs ]))
+        return simplify(tuple([e.eval(containers, boundedvars) for e in self.exprs]))
 
     def apply(self, containers, boundedvars, fargs):
         assert len(fargs) == 1
         # print("ZZZZ", [x.eval(containers, boundedvars) for x in self.exprs], fargs[0])
         return self.exprs[fargs[0] - 1].eval(containers, boundedvars)
+
 
 class SetExpression(Expression):
     def __init__(self, elements=None, primed=False):
@@ -3450,7 +3584,7 @@ class SetExpression(Expression):
                 cx = compileExpression(x)
                 if cx.primed:
                     self.primed = True
-                self.elements += [ cx ]
+                self.elements += [cx]
         return self
 
     def __str__(self):
@@ -3466,7 +3600,7 @@ class SetExpression(Expression):
 
     def substitute(self, subs):
         return SetExpression(
-            elements=[ e.substitute(subs) for e in self.elements ],
+            elements=[e.substitute(subs) for e in self.elements],
             primed=self.primed
         )
 
@@ -3475,6 +3609,7 @@ class SetExpression(Expression):
         for x in self.elements:
             result.add(x.eval(containers, boundedvars))
         return frozenset(result)
+
 
 class FilterExpression(Expression):
     def __init__(self, vars=None, elements=None, expr=None, primed=False):
@@ -3491,16 +3626,16 @@ class FilterExpression(Expression):
             assert t0 == "Tuple"
             (t1, a1) = a0
             assert t1 == "CommaList"
-            self.vars = [ BoundvarExpression(v) for (t, v) in a1 ]
+            self.vars = [BoundvarExpression(v) for (t, v) in a1]
         self.elements = compileExpression(filter[1])
-        name_stack.append({ bv.id:bv for bv in self.vars })
+        name_stack.append({bv.id: bv for bv in self.vars})
         self.expr = compileExpression(filter[2])
         name_stack.pop()
         return self
 
     def __str__(self):
         return "Filter(" + str(self.vars) + ", " + self.elements.__str__() \
-                        + ", " + self.expr.__str__() + ")"
+               + ", " + self.expr.__str__() + ")"
 
     def substitute(self, subs):
         return FilterExpression(
@@ -3516,7 +3651,7 @@ class FilterExpression(Expression):
         elements = self.elements.eval(containers, boundedvars)
         result = []
         bvs = boundedvars.copy()
-        assert len(self.vars) == 1      # TODO
+        assert len(self.vars) == 1  # TODO
 
         # Need to go through elements in defined order because
         # of pseudo-randomization
@@ -3527,6 +3662,7 @@ class FilterExpression(Expression):
             if self.expr.eval(containers, bvs):
                 result.append(x)
         return frozenset(result)
+
 
 class NumberExpression(Expression):
     def __init__(self, n):
@@ -3541,6 +3677,7 @@ class NumberExpression(Expression):
 
     def eval(self, containers, boundedvars):
         return self.number
+
 
 class StringExpression(Expression):
     def __init__(self, s):
@@ -3560,6 +3697,7 @@ class StringExpression(Expression):
         assert len(fargs) == 1
         return self.string[fargs[0] - 1]
 
+
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
 ####    Main Class
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
@@ -3567,12 +3705,14 @@ class StringExpression(Expression):
 name_stack[-1]["FALSE"] = ValueExpression(False)
 name_stack[-1]["TRUE"] = ValueExpression(True)
 
+
 class PlusPyError(Exception):
     def __init__(self, descr):
         self.descr = descr
 
     def __str__(self):
         return "PlusPyError: " + self.descr
+
 
 class PlusPy:
     def __init__(self, file, constants={}, seed=None):
@@ -3588,12 +3728,12 @@ class PlusPy:
         modules[self.mod.name] = self.mod
 
         self.constants = {
-            self.mod.constants[k]:ValueExpression(v) for (k, v) in constants.items()
+            self.mod.constants[k]: ValueExpression(v) for (k, v) in constants.items()
         }
- 
+
         # Substitute containers for variables
-        self.containers = { v:ContainerExpression(var=v)
-                                    for v in self.mod.variables.values() }
+        self.containers = {v: ContainerExpression(var=v)
+                           for v in self.mod.variables.values()}
 
     def init(self, initOp):
         op = self.mod.operators[initOp]
@@ -3631,7 +3771,7 @@ class PlusPy:
         # Replace operator arguments with specified values
         # TODO.  Should be able to take more than 1 argument
         if len(args) > 0:
-            expr = expr.substitute({ args[0] : ValueExpression(arg) })
+            expr = expr.substitute({args[0]: ValueExpression(arg)})
 
         # Replace constants for their values and variables for containers
         expr2 = expr.substitute(self.constants)
@@ -3643,7 +3783,8 @@ class PlusPy:
             error = False
             for (v, c) in self.containers.items():
                 if c.next == None:
-                    print("Variable", v.id, "did not receive a value (fatal error)", file=sys.stderr)
+                    print("Variable", v.id, "did not receive a value (fatal error)",
+                          file=sys.stderr)
                     error = True
             if error:
                 exit(1)
@@ -3676,8 +3817,9 @@ class PlusPy:
         v.next = value
 
     def getall(self):
-        s = { k.id:v.next for (k, v) in self.containers.items() }
+        s = {k.id: v.next for (k, v) in self.containers.items()}
         return simplify(FrozenDict(s))
+
 
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
 ####    Python Wrappers (to replace TLA+ operator definitions)
@@ -3686,6 +3828,7 @@ class PlusPy:
 class Wrapper:
     def eval(self, id, args):
         assert False
+
 
 class InfixWrapper(Wrapper):
     def __str__(self):
@@ -3707,20 +3850,20 @@ class InfixWrapper(Wrapper):
             if id == "\\supset": return rhs.issubset(lhs) and rhs != lhs
             if id == "\\supseteq": return rhs.issubset(lhs)
             if id == "\\": return lhs.difference(rhs)
-            if id in { "\\cap", "\\intersect" }: return lhs.intersection(rhs)
-            if id in { "\\cup", "\\union" }: return lhs.union(rhs)
+            if id in {"\\cap", "\\intersect"}: return lhs.intersection(rhs)
+            if id in {"\\cup", "\\union"}: return lhs.union(rhs)
             if id == "\\div": return lhs // rhs
         else:
             if id == "/\\": return lhs and rhs
             if id == "=>": return (not lhs) or rhs
             if id == "<=>": return lhs == rhs
-            if id in { "#", "/=" }: return lhs != rhs
+            if id in {"#", "/="}: return lhs != rhs
             if id == "<": return lhs < rhs
             if id == "=": return lhs == rhs
             if id == ">": return lhs > rhs
             if id == ">=": return lhs >= rhs
-            if id in { "<=", "=<" }: return lhs <= rhs
-            if id == "..": return frozenset({ i for i in range(lhs, rhs + 1) })
+            if id in {"<=", "=<"}: return lhs <= rhs
+            if id == "..": return frozenset({i for i in range(lhs, rhs + 1)})
             if id == "+": return lhs + rhs
             if id == "-": return lhs - rhs
             if id == "*": return lhs * rhs
@@ -3728,6 +3871,7 @@ class InfixWrapper(Wrapper):
             if id == "%": return lhs % rhs
             if id == "^": return lhs ** rhs
         assert False
+
 
 class OutfixWrapper(Wrapper):
     def __str__(self):
@@ -3738,7 +3882,7 @@ class OutfixWrapper(Wrapper):
             result.add(frozenset(record))
         else:
             self.subset_enum(lst[1:], record, result)
-            self.subset_enum(lst[1:], record.union({ lst[0] }), result)
+            self.subset_enum(lst[1:], record.union({lst[0]}), result)
 
     def eval(self, id, args):
         assert len(args) == 1
@@ -3763,9 +3907,10 @@ class OutfixWrapper(Wrapper):
             return frozenset(result)
 
         # if id == "-.": return -expr
-        if id in { "~", "\\lnot", "\\neg" }: return not expr
+        if id in {"~", "\\lnot", "\\neg"}: return not expr
 
         assert False
+
 
 wrappers["Core"] = {
     "=>": InfixWrapper(),
@@ -3813,6 +3958,7 @@ wrappers["Naturals"] = {
     "^": InfixWrapper(),
 }
 
+
 class LenWrapper(Wrapper):
     def __str__(self):
         return "Sequences!Len(_)"
@@ -3822,6 +3968,7 @@ class LenWrapper(Wrapper):
         assert isinstance(args[0], tuple) or isinstance(args[0], str)
         return len(args[0])
 
+
 class ConcatWrapper(Wrapper):
     def __str__(self):
         return "Sequences!Concat(_)"
@@ -3829,6 +3976,7 @@ class ConcatWrapper(Wrapper):
     def eval(self, id, args):
         assert len(args) == 2
         return simplify(tuple(list(args[0]) + list(args[1])))
+
 
 class AppendWrapper(Wrapper):
     def __str__(self):
@@ -3838,11 +3986,13 @@ class AppendWrapper(Wrapper):
         assert len(args) == 2
         return simplify(tuple(list(args[0]) + [args[1]]))
 
+
 wrappers["Sequences"] = {
     "Len": LenWrapper(),
     "\\o": ConcatWrapper(),
     "Append": AppendWrapper()
 }
+
 
 class AssertWrapper(Wrapper):
     def __str__(self):
@@ -3853,6 +4003,7 @@ class AssertWrapper(Wrapper):
         assert args[0], args[1]
         return True
 
+
 class JavaTimeWrapper(Wrapper):
     def __str__(self):
         return "TLC!JavaTime()"
@@ -3860,6 +4011,7 @@ class JavaTimeWrapper(Wrapper):
     def eval(self, id, args):
         assert len(args) == 0
         return int(time.time() * 1000)
+
 
 class PrintWrapper(Wrapper):
     def __str__(self):
@@ -3870,6 +4022,7 @@ class PrintWrapper(Wrapper):
         print(str(convert(args[0])), end="")
         return args[1]
 
+
 class PrintTWrapper(Wrapper):
     def __str__(self):
         return "TLC!TPrint(_)"
@@ -3878,6 +4031,7 @@ class PrintTWrapper(Wrapper):
         assert len(args) == 1
         print(str(convert(args[0])))
         return True
+
 
 class RandomElementWrapper(Wrapper):
     def __str__(self):
@@ -3889,6 +4043,7 @@ class RandomElementWrapper(Wrapper):
         r = random.randrange(len(lst))
         return lst[r]
 
+
 class ToStringWrapper(Wrapper):
     def __str__(self):
         return "TLC!ToString(_)"
@@ -3897,7 +4052,9 @@ class ToStringWrapper(Wrapper):
         assert len(args) == 1
         return str(format(args[0]))
 
+
 TLCvars = {}
+
 
 class TLCSetWrapper(Wrapper):
     def __str__(self):
@@ -3908,6 +4065,7 @@ class TLCSetWrapper(Wrapper):
         TLCvars[args[0]] = args[1]
         return True
 
+
 class TLCGetWrapper(Wrapper):
     def __str__(self):
         return "TLC!TLCGet(_)"
@@ -3915,6 +4073,7 @@ class TLCGetWrapper(Wrapper):
     def eval(self, id, args):
         assert len(args) == 1
         return TLCvars[args[0]]
+
 
 wrappers["TLC"] = {
     "Assert": AssertWrapper(),
@@ -3927,6 +4086,7 @@ wrappers["TLC"] = {
     "ToString": ToStringWrapper(),
 }
 
+
 class JWaitWrapper(Wrapper):
     def __str__(self):
         return "TLC!JWait(_)"
@@ -3938,6 +4098,7 @@ class JWaitWrapper(Wrapper):
         waitset.add(args[0])
         return True
 
+
 class JSignalReturnWrapper(Wrapper):
     def __str__(self):
         return "TLC!JSignalReturn(_,_)"
@@ -3948,12 +4109,14 @@ class JSignalReturnWrapper(Wrapper):
         signalset.add(args[0])
         return args[1]
 
+
 wrappers["TLCExt"] = {
     "JWait": JWaitWrapper(),
     "JSignalReturn": JSignalReturnWrapper()
 }
 
 import threading
+
 
 class netReceiver(threading.Thread):
     def __init__(self, src, mux):
@@ -3966,7 +4129,7 @@ class netReceiver(threading.Thread):
 
         (skt, addr) = self.src
         (host, port) = addr
-        all=[]
+        all = []
         while True:
             data = skt.recv(8192)
             if not data:
@@ -3981,6 +4144,7 @@ class netReceiver(threading.Thread):
             ))
             cond.notify()
 
+
 class netSender(threading.Thread):
     def __init__(self, mux, msg):
         threading.Thread.__init__(self)
@@ -3994,13 +4158,14 @@ class netSender(threading.Thread):
             print("netSender", dst, self.msg)
         while True:
             try:
-                skt = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+                skt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 skt.connect(dst)
                 skt.sendall(pickle.dumps(self.msg))
                 skt.close()
                 break
             except ConnectionRefusedError:
                 time.sleep(0.5)
+
 
 class netServer(threading.Thread):
     def __init__(self, mux):
@@ -4017,9 +4182,11 @@ class netServer(threading.Thread):
             client = skt.accept()
             netReceiver(client, self.mux).start()
 
+
 IO_inputs = []
 IO_outputs = []
 IO_running = set()
+
 
 class Reader(threading.Thread):
     def run(self):
@@ -4029,13 +4196,14 @@ class Reader(threading.Thread):
             inp = input()
             with lock:
                 IO_inputs.append(FrozenDict(
-                    { "intf": "fd", "mux": "stdin", "data": inp}
+                    {"intf": "fd", "mux": "stdin", "data": inp}
                 ))
                 cond.notify()
 
+
 def flush():
     global IO_outputs
-    for x in IO_outputs: 
+    for x in IO_outputs:
         d = x.d
         if d["intf"] == "fd":
             if d["mux"] == "stdout":
@@ -4060,10 +4228,12 @@ def flush():
     if wakeup:
         cond.notifyAll()
 
+
 def drain():
     global IO_outputs, signalset
     IO_outputs = []
     signalset = set()
+
 
 class IOPutWrapper(Wrapper):
     def __str__(self):
@@ -4072,9 +4242,10 @@ class IOPutWrapper(Wrapper):
     def eval(self, id, args):
         assert len(args) == 3
         IO_outputs.append(FrozenDict(
-            { "intf": args[0], "mux": args[1], "data": args[2] }
+            {"intf": args[0], "mux": args[1], "data": args[2]}
         ))
         return True
+
 
 class IOWaitWrapper(Wrapper):
     def __str__(self):
@@ -4104,6 +4275,7 @@ class IOWaitWrapper(Wrapper):
 
         return False
 
+
 class IOGetWrapper(Wrapper):
     def __str__(self):
         return "IOUtils!IOGet(Pattern(_))"
@@ -4117,6 +4289,7 @@ class IOGetWrapper(Wrapper):
                 IO_inputs.remove(x)
                 return d["data"]
         assert False
+
 
 wrappers["IOUtils"] = {
     "IOPut": IOPutWrapper(),
@@ -4138,6 +4311,7 @@ lock = threading.Lock()
 cond = threading.Condition(lock)
 maxcount = None
 
+
 def usage():
     print("Usage: pluspy [options] tla-module")
     print("  options: ")
@@ -4151,6 +4325,7 @@ def usage():
     print("    -v: verbose output")
     exit(1)
 
+
 def handleOutput(output):
     d = convert(output)
     if d["intf"] == "fd":
@@ -4163,9 +4338,11 @@ def handleOutput(output):
         print("GOT OUTPUT", d)
         assert False
 
+
 step = 0
 waitset = set()
 signalset = set()
+
 
 # The Next operator, possibly with arguments separated by "%"
 def run(pp, next):
@@ -4182,8 +4359,8 @@ def run(pp, next):
     while True:
         with lock:
             tries = 0
-            flush()     # do all the outputs
-            drain()     # remove all outputs
+            flush()  # do all the outputs
+            drain()  # remove all outputs
             while not pp.next(args[0], arg):
                 tries += 1
                 if verbose:
@@ -4209,6 +4386,7 @@ def run(pp, next):
             while arg in waitset:
                 cond.wait(0.2)
 
+
 def main():
     global verbose, silent, maxcount, pluspypath
 
@@ -4221,27 +4399,27 @@ def main():
     seed = None
     try:
         opts, args = getopt.getopt(sys.argv[1:],
-                        "c:hi:n:P:sS:v",
-                        ["help", "init=", "next=", "path=", "seed="])
+                                   "c:hi:n:P:sS:v",
+                                   ["help", "init=", "next=", "path=", "seed="])
     except getopt.GetoptError as err:
         print(str(err))
         usage()
     for o, a in opts:
-        if o in { "-v" }:
+        if o in {"-v"}:
             verbose = True
-        elif o in { "-c" }:
+        elif o in {"-c"}:
             maxcount = int(a)
-        elif o in { "-h", "--help" }:
+        elif o in {"-h", "--help"}:
             usage()
-        elif o in { "-i", "--init" }:
+        elif o in {"-i", "--init"}:
             initOp = a
-        elif o in { "-n", "--next"  }:
+        elif o in {"-n", "--next"}:
             nextOps.add(a)
-        elif o in { "-P", "--path" }:
+        elif o in {"-P", "--path"}:
             pluspypath = a
-        elif o in { "-s" }:
+        elif o in {"-s"}:
             silent = True
-        elif o in { "-S", "--seed" }:
+        elif o in {"-S", "--seed"}:
             seed = int(a)
         else:
             assert False, "unhandled option"
@@ -4281,6 +4459,7 @@ def main():
     if not silent:
         print("MAIN DONE")
     exit(0)
+
 
 if __name__ == "__main__":
     main()
