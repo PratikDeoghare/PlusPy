@@ -837,20 +837,25 @@ class Preamble(Rule):
 
     def parse(self, s):
         start = s[0]
-        i = 0
-        while i < len(s) and "----" != lexeme(s[i]):
-            i += 1
-        return ("Preamble", start, s[i:])
+        while len(s) > 4:
+            a,b,_,d = tuple([lexeme(x) for x in s[:4]])
+            if a == "----" and b == "MODULE" and d == "----":
+                break
+            else:
+                s = s[1:]
+
+        return ("Preamble", start, s)
 
 
 class GModule(Rule):
     def parse(self, s):
-        return self.match("GModule", s, Concat([
+        x = self.match("GModule", s, Concat([
             Optional(Preamble(),0),
             tok("----"), tok("MODULE"), Name(), tok("----"),
             Optional(Concat([tok("EXTENDS"), CommaList(Name())]), [1]),
             AtLeast(GUnit(), 0), tok("====")
         ]), [2 + 1, 4 + 1, 5 + 1])
+        return x
 
 
 # This rule recognizes a list of other rules:  rule1 & rule2 & rule3 & ...
